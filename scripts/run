@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+if [[ -n "${OTID_DEBUG}" ]]; then
+    set -x
+fi
+
+PROJECT_ROOT="$(dirname "$(dirname "$(readlink -f "${0}")")")"
+SRC="$PROJECT_ROOT/src"
+
+function usage() {
+    echo -n \
+         "Usage: $(basename "$0") (--local|--remote)
+Run otid-model-training docker image either locally or on an AWS GPU-enabled
+EC2 instance. All arguments except the first are passed to 'docker run'.
+"
+}
+
+if [ "${BASH_SOURCE[0]}" = "${0}" ]
+then
+    if [ "${1:-}" = "--cpu" ]
+    then
+        docker run --rm -it \
+            -v "$SRC":/opt/src \
+            -v /opt/data:/opt/data \
+            keras-semantic-segmentation-cpu "${@:2}"
+    elif [ "${1:-}" = "--gpu" ]
+    then
+        sudo nvidia-docker run --rm -it \
+            -v ~/keras-semantic-segmentation/src:/opt/src \
+            -v ~/data:/opt/data \
+            002496907356.dkr.ecr.us-east-1.amazonaws.com/keras-semantic-segmentation-gpu "${@:2}"
+    else
+        usage
+    fi
+fi
